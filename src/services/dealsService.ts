@@ -72,7 +72,7 @@ class DealsService {
       throw new Error(`Failed to fetch from deals service (${response.status}).`);
     }
 
-    return response.json() as Promise<{ data?: unknown[] | unknown }>;
+    return response.json() as Promise<{ data?: unknown[] | unknown; pagination?: unknown }>;
   }
 
   private async fetchFromRecommendationService(pathname: string, query?: Record<string, unknown>) {
@@ -99,7 +99,10 @@ class DealsService {
 
   async getFilteredDeals(query: Record<string, unknown>) {
     const payload = await this.fetchFromDealsService("/api/deals", query);
-    return payload.data ?? [];
+    return {
+      items: payload.data ?? [],
+      pagination: payload.pagination,
+    };
   }
 
   async getDealFilterOptions() {
@@ -196,10 +199,15 @@ class DealsService {
     return this.getDealsByIds(dealIds);
   }
 
-  async getTopDeals(_limit?: number) {
-    const limit = Number.isFinite(_limit) && _limit && _limit > 0 ? Math.floor(_limit) : 8;
+  async getTopDeals({ page, limit: requestedLimit }: { page?: number; limit?: number } = {}) {
+    const limit =
+      Number.isFinite(requestedLimit) && requestedLimit && requestedLimit > 0
+        ? Math.floor(requestedLimit)
+        : 8;
+    const normalizedPage = Number.isFinite(page) && page && page > 0 ? Math.floor(page) : 1;
 
     const payload = await this.fetchFromDealsService("/api/deals", {
+      page: normalizedPage,
       limit,
       sortBy: "viewsCount",
       sortOrder: "desc",
@@ -207,7 +215,10 @@ class DealsService {
       isExpired: false,
     });
 
-    return payload.data ?? [];
+    return {
+      items: payload.data ?? [],
+      pagination: payload.pagination,
+    };
   }
 
   async getBrandsInfo() {
