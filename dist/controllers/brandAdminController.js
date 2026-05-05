@@ -1,19 +1,19 @@
-import { getAuth } from "@clerk/express";
 import { brandAdminService } from "../services/brandAdminService.js";
 import { clerkAdminService } from "../services/clerkAdminService.js";
 import { dealsService } from "../services/dealsService.js";
 import { userDomainService } from "../services/userDomainService.js";
+import { getAuthContext } from "../utils/auth.js";
 const httpError = (message, statusCode) => {
     const error = new Error(message);
     error.statusCode = statusCode;
     return error;
 };
 async function requireRole(req, roles) {
-    const auth = getAuth(req);
-    if (!auth.userId) {
+    const { userId } = getAuthContext(req);
+    if (!userId) {
         throw httpError("Unauthorized. Valid Clerk token is required.", 401);
     }
-    const user = await userDomainService.fetchMe(req.headers.authorization, auth.userId);
+    const user = await userDomainService.fetchMe(req.headers.authorization, userId);
     if (!user) {
         throw httpError("User not found in domain.", 404);
     }

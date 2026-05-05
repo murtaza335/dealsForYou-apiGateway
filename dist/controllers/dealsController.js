@@ -1,4 +1,4 @@
-import { getAuth } from "@clerk/express";
+import { getAuthContext } from "../utils/auth.js";
 import { dealsService, } from "../services/dealsService.js";
 // export const getBrands: RequestHandler = async (req, res, next) => {
 //   try {
@@ -119,9 +119,9 @@ export const getDealById = async (req, res, next) => {
 };
 export const getRecommendedDeals = async (req, res, next) => {
     try {
-        const auth = getAuth(req);
+        const { userId } = getAuthContext(req);
         const query = {
-            userId: typeof req.query.userId === "string" ? req.query.userId : undefined,
+            userId: typeof req.query.userId === "string" ? req.query.userId : userId,
             limit: typeof req.query.limit === "string" ? Number(req.query.limit) : undefined,
         };
         const deals = await dealsService.getRecommendedDeals(query);
@@ -137,10 +137,10 @@ export const getRecommendedDeals = async (req, res, next) => {
 };
 export const getCurrentMoodDeals = async (req, res, next) => {
     try {
-        const auth = getAuth(req);
+        const { userId, sessionId } = getAuthContext(req);
         const query = {
-            userId: typeof req.query.userId === "string" ? req.query.userId : undefined,
-            sessionId: auth.sessionId ?? undefined,
+            userId: typeof req.query.userId === "string" ? req.query.userId : userId,
+            sessionId: sessionId ?? undefined,
             limit: typeof req.query.limit === "string" ? Number(req.query.limit) : undefined,
         };
         if (!query.userId || !query.sessionId) {

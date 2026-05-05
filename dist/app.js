@@ -20,10 +20,11 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: "12mb" }));
 app.use(express.urlencoded({ extended: true }));
-app.use(clerkMiddleware({
+const clerkAuthMiddleware = clerkMiddleware({
     publishableKey: process.env.CLERK_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
     secretKey: process.env.CLERK_SECRET_KEY,
-}));
+});
+app.use(clerkAuthMiddleware);
 // Routes
 app.use("/api/deals", dealsRoutes);
 app.use("/api/analytics", analyticsRoutes);

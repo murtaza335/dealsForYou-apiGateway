@@ -1,6 +1,6 @@
 import type { RequestHandler } from "express";
-import { getAuth } from "@clerk/express";
 import { analyticsService } from "../services/analyticsService.js";
+import { getAuthContext } from "../utils/auth.js";
 
 export const getTrendingDeals: RequestHandler = async (_req, res, next) => {
   try {
@@ -32,12 +32,10 @@ export const getTrendingBrands: RequestHandler = async (_req, res, next) => {
 
 export const trackEvent: RequestHandler = async (req, res, next) => {
   //get the session id from the request header
-  const sessionId = getAuth(req)?.sessionId ?? null;
+  const { sessionId } = getAuthContext(req);
 
   // adding session id to the request body
-   const payload = { ...req.body,
-    sessionId: sessionId
-     };
+  const payload = { ...req.body, sessionId: sessionId ?? null };
   try {
     await analyticsService.trackEvent(payload);
 

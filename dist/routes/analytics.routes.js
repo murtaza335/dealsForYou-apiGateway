@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { getTrendingDeals, getTrendingBrands, trackEvent } from "../controllers/analyticsController.js";
 import { cacheService } from "../services/cacheService.js";
+import { getAuthContext } from "../utils/auth.js";
 const router = Router();
 const createRouteCache = (options) => {
     return async (req, res, next) => {
@@ -9,13 +10,12 @@ const createRouteCache = (options) => {
         }
         const keyParts = [options.keyPrefix, req.method, req.originalUrl];
         if (options.includeAuthContext) {
-            const { getAuth } = await import("@clerk/express");
-            const auth = getAuth(req);
-            if (auth.userId) {
-                keyParts.push(`user:${auth.userId}`);
+            const { userId, sessionId } = getAuthContext(req);
+            if (userId) {
+                keyParts.push(`user:${userId}`);
             }
-            if (auth.sessionId) {
-                keyParts.push(`session:${auth.sessionId}`);
+            if (sessionId) {
+                keyParts.push(`session:${sessionId}`);
             }
         }
         const cacheKey = keyParts.join("|");

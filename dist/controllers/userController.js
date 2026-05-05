@@ -1,12 +1,12 @@
-import { getAuth } from "@clerk/express";
 import { userDomainService } from "../services/userDomainService.js";
+import { getAuthContext } from "../utils/auth.js";
 export const getMe = async (req, res, next) => {
     try {
-        const auth = getAuth(req);
-        if (!auth.userId?.trim()) {
+        const { userId } = getAuthContext(req);
+        if (!userId?.trim()) {
             return res.status(401).json({ success: false, message: "Unauthorized" });
         }
-        const data = await userDomainService.fetchMe(req.headers.authorization, auth.userId);
+        const data = await userDomainService.fetchMe(req.headers.authorization, userId);
         if (data === null) {
             return res.status(404).json({
                 success: false,

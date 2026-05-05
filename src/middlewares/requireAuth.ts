@@ -1,10 +1,10 @@
 import type { RequestHandler } from "express";
-import { getAuth } from "@clerk/express";
+import { getAuthContext } from "../utils/auth.js";
 
 export const requireAuth: RequestHandler = (req, res, next) => {
-  const auth = getAuth(req);
+  const { isAuthenticated } = getAuthContext(req);
 
-  if (!auth.userId) {
+  if (!isAuthenticated) {
     return res.status(401).json({
       success: false,
       message: "Unauthorized. Valid Clerk token is required.",

@@ -1,6 +1,6 @@
-import { getAuth } from "@clerk/express";
 import type { Request, RequestHandler } from "express";
 import { cacheService } from "../services/cacheService.js";
+import { getAuthContext } from "../utils/auth.js";
 
 type RouteCacheOptions = {
   ttlSeconds: number;
@@ -17,14 +17,14 @@ function buildCacheKey(req: Request, options: RouteCacheOptions) {
   const keyParts = [options.keyPrefix, req.method, req.originalUrl];
 
   if (options.includeAuthContext) {
-    const auth = getAuth(req);
+    const { userId, sessionId } = getAuthContext(req);
 
-    if (auth.userId) {
-      keyParts.push(`user:${auth.userId}`);
+    if (userId) {
+      keyParts.push(`user:${userId}`);
     }
 
-    if (auth.sessionId) {
-      keyParts.push(`session:${auth.sessionId}`);
+    if (sessionId) {
+      keyParts.push(`session:${sessionId}`);
     }
   }
 

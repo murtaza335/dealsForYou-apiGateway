@@ -1,8 +1,8 @@
-import { getAuth } from "@clerk/express";
 import { Router } from "express";
 import { getDealById, getDealFilterBrands, getDealFilterCuisineTags, getDealFilterMealTypes, getDealFilterOptions, getDealFilterPriceRange, getFilteredDeals, getCurrentMoodDeals, getRecommendedDeals, getTopDeals, } from "../controllers/dealsController.js";
 import { cacheService } from "../services/cacheService.js";
 import { requireAuth } from "../middlewares/requireAuth.js";
+import { getAuthContext } from "../utils/auth.js";
 const router = Router();
 const createRouteCache = (options) => {
     return async (req, res, next) => {
@@ -11,12 +11,12 @@ const createRouteCache = (options) => {
         }
         const keyParts = [options.keyPrefix, req.method, req.originalUrl];
         if (options.includeAuthContext) {
-            const auth = getAuth(req);
-            if (auth.userId) {
-                keyParts.push(`user:${auth.userId}`);
+            const { userId, sessionId } = getAuthContext(req);
+            if (userId) {
+                keyParts.push(`user:${userId}`);
             }
-            if (auth.sessionId) {
-                keyParts.push(`session:${auth.sessionId}`);
+            if (sessionId) {
+                keyParts.push(`session:${sessionId}`);
             }
         }
         const cacheKey = keyParts.join("|");
