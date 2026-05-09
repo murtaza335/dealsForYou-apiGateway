@@ -64,7 +64,10 @@ class DealsService {
     }
     async getFilteredDeals(query) {
         const payload = await this.fetchFromDealsService("/api/deals", query);
-        return payload.data ?? [];
+        return {
+            items: payload.data ?? [],
+            pagination: payload.pagination,
+        };
     }
     async getDealFilterOptions() {
         const payload = await this.fetchFromDealsService("/api/deals/filters/options");
@@ -136,16 +139,23 @@ class DealsService {
         const dealIds = payload.recommendedDealIds ?? [];
         return this.getDealsByIds(dealIds);
     }
-    async getTopDeals(_limit) {
-        const limit = Number.isFinite(_limit) && _limit && _limit > 0 ? Math.floor(_limit) : 8;
+    async getTopDeals({ page, limit: requestedLimit } = {}) {
+        const limit = Number.isFinite(requestedLimit) && requestedLimit && requestedLimit > 0
+            ? Math.floor(requestedLimit)
+            : 8;
+        const normalizedPage = Number.isFinite(page) && page && page > 0 ? Math.floor(page) : 1;
         const payload = await this.fetchFromDealsService("/api/deals", {
+            page: normalizedPage,
             limit,
             sortBy: "viewsCount",
             sortOrder: "desc",
             isActive: true,
             isExpired: false,
         });
-        return payload.data ?? [];
+        return {
+            items: payload.data ?? [],
+            pagination: payload.pagination,
+        };
     }
     async getBrandsInfo() {
         const dealsServiceBaseUrl = process.env.deals_url ?? process.env.DEALS_URL ?? "http://localhost:5002";

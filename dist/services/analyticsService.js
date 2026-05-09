@@ -52,9 +52,40 @@ class AnalyticsService {
         if (!response.ok) {
             throw new Error(`Failed to POST to analytics service (${response.status}).`);
         }
+        return response.json();
+    }
+    async deleteFromAnalyticsService(pathname, body) {
+        const analyticsServiceBaseUrl = this.getAnalyticsServiceBaseUrl();
+        const url = `${analyticsServiceBaseUrl.replace(/\/$/, "")}${pathname}`;
+        console.log("[Gateway] Forwarding analytics DELETE request to:", url);
+        const response = await fetch(url, {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(body),
+        });
+        if (!response.ok) {
+            throw new Error(`Failed to DELETE from analytics service (${response.status}).`);
+        }
+        return response.json();
     }
     async trackEvent(payload) {
         return this.postToAnalyticsService("/api/analytics/event", payload);
+    }
+    async getFavourites(userId) {
+        const payload = await this.fetchFromAnalyticsService("/api/analytics/favourites", { userId });
+        return payload.data ?? [];
+    }
+    async getFavouritesDetails(userId) {
+        const payload = await this.fetchFromAnalyticsService("/api/analytics/favourites/details", { userId });
+        return payload.data ?? [];
+    }
+    async addFavourite(payload) {
+        return this.postToAnalyticsService("/api/analytics/favourites", payload);
+    }
+    async removeFavourite(payload) {
+        return this.deleteFromAnalyticsService("/api/analytics/favourites", payload);
     }
 }
 export const analyticsService = new AnalyticsService();

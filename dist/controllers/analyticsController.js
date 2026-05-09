@@ -39,3 +39,76 @@ export const trackEvent = async (req, res, next) => {
         next(error);
     }
 };
+export const getFavourites = async (req, res, next) => {
+    try {
+        const { userId } = getAuthContext(req);
+        if (!userId) {
+            res.status(401).json({ success: false, message: "Unauthorized" });
+            return;
+        }
+        const favourites = await analyticsService.getFavourites(userId);
+        res.status(200).json({
+            success: true,
+            data: favourites,
+            message: "Favourites fetched successfully",
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+export const getFavouritesDetails = async (req, res, next) => {
+    try {
+        const { userId } = getAuthContext(req);
+        if (!userId) {
+            res.status(401).json({ success: false, message: "Unauthorized" });
+            return;
+        }
+        const details = await analyticsService.getFavouritesDetails(userId);
+        res.status(200).json({
+            success: true,
+            data: details,
+            message: "Favourites details fetched successfully",
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+export const addFavourite = async (req, res, next) => {
+    console.log(`[Gateway] addFavourite request body:`, req.body);
+    try {
+        const { userId } = getAuthContext(req);
+        if (!userId) {
+            res.status(401).json({ success: false, message: "Unauthorized" });
+            return;
+        }
+        const payload = { ...req.body, userId };
+        await analyticsService.addFavourite(payload);
+        res.status(201).json({
+            success: true,
+            message: "Favourite added successfully",
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+export const removeFavourite = async (req, res, next) => {
+    try {
+        const { userId } = getAuthContext(req);
+        if (!userId) {
+            res.status(401).json({ success: false, message: "Unauthorized" });
+            return;
+        }
+        const payload = { ...req.body, userId };
+        await analyticsService.removeFavourite(payload);
+        res.status(200).json({
+            success: true,
+            message: "Favourite removed successfully",
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};

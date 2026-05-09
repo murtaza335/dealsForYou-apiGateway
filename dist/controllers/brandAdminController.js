@@ -194,7 +194,7 @@ export const getAppAdminOverview = async (req, res, next) => {
             userDomainService.listUsers("APP_ADMIN"),
             brandAdminService.listBrands(),
             brandAdminService.listPendingBrands(),
-            dealsService.getTopDeals(8),
+            dealsService.getTopDeals({ limit: 8 }),
         ]);
         res.status(200).json({
             success: true,
@@ -206,7 +206,7 @@ export const getAppAdminOverview = async (req, res, next) => {
                 totalBrands: brands.length,
                 pendingBrands: pendingBrands.length,
                 approvedBrands: brands.filter((brand) => brand.approvalStatus === "APPROVED").length,
-                topDeals,
+                topDeals: topDeals.items,
             },
         });
     }

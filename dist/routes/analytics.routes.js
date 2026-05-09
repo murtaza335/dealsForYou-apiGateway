@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { getTrendingDeals, getTrendingBrands, trackEvent } from "../controllers/analyticsController.js";
+import { getTrendingDeals, getTrendingBrands, trackEvent, getFavourites, getFavouritesDetails, addFavourite, removeFavourite, } from "../controllers/analyticsController.js";
+import { requireAuth } from "../middlewares/requireAuth.js";
 import { cacheService } from "../services/cacheService.js";
 import { getAuthContext } from "../utils/auth.js";
 const router = Router();
@@ -54,4 +55,9 @@ const cacheTrendingBrands = createRouteCache({
 router.get("/trending/deals", cacheTrendingDeals, getTrendingDeals);
 router.get("/trending/brands", cacheTrendingBrands, getTrendingBrands);
 router.post("/event", trackEvent);
+// Favourites routes
+router.get("/favourites", requireAuth, getFavourites);
+router.get("/favourites/details", requireAuth, getFavouritesDetails);
+router.post("/favourites", requireAuth, addFavourite);
+router.delete("/favourites", requireAuth, removeFavourite);
 export default router;

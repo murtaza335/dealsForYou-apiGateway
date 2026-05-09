@@ -19,11 +19,12 @@ export const getFilteredDeals = async (req, res, next) => {
     try {
         const query = req.query;
         console.log("[Gateway] GET /api/deals/filtered query:", query);
-        const deals = await dealsService.getFilteredDeals(query);
-        console.log("[Gateway] Filtered deals fetched:", Array.isArray(deals) ? deals.length : 0);
+        const { items, pagination } = await dealsService.getFilteredDeals(query);
+        console.log("[Gateway] Filtered deals fetched:", Array.isArray(items) ? items.length : 0);
         res.status(200).json({
             success: true,
-            data: deals,
+            data: items,
+            pagination,
             message: "Filtered deals fetched successfully",
         });
     }
@@ -163,10 +164,12 @@ export const getCurrentMoodDeals = async (req, res, next) => {
 export const getTopDeals = async (req, res, next) => {
     try {
         const limit = typeof req.query.limit === "string" ? Number(req.query.limit) : undefined;
-        const deals = await dealsService.getTopDeals(limit);
+        const page = typeof req.query.page === "string" ? Number(req.query.page) : undefined;
+        const { items, pagination } = await dealsService.getTopDeals({ page, limit });
         res.status(200).json({
             success: true,
-            data: deals,
+            data: items,
+            pagination,
             message: "Top deals fetched successfully",
         });
     }
