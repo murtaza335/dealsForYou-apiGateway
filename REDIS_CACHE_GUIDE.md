@@ -68,6 +68,7 @@ Redis caching is implemented across all GET routes in the API gateway for read-h
 - **Cache Hits**: Responses returned directly from Redis without calling downstream service
 - **Cache Misses**: Gateway fetches fresh data from service and stores it in Redis for future requests
 - **Status Codes**: Only successful responses (2xx status codes) are cached
+- **Empty/Error Payloads**: Successful responses with no results or `success: false` are not cached
 - **Non-GET Routes**: POST, PATCH, DELETE routes bypass cache entirely
 - **Graceful Degradation**: If Redis is unavailable, the gateway continues serving requests normally without failing
 
@@ -121,7 +122,7 @@ const createRouteCache = (options: RouteCacheOptions) => {
   // Returns Express middleware that:
   // 1. Checks Redis cache on GET requests
   // 2. Returns cached response if hit
-  // 3. Intercepts res.json() to auto-cache successful responses
+  // 3. Intercepts res.json() to auto-cache successful responses with data
   // 4. Logs cache hits/misses to console
 };
 ```

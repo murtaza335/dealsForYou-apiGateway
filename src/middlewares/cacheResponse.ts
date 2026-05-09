@@ -13,6 +13,30 @@ type CachedResponsePayload = {
   body: unknown;
 };
 
+function shouldCacheResponse(body: unknown): boolean {
+  if (body === null || body === undefined) return false;
+
+  if (Array.isArray(body)) {
+    return body.length > 0;
+  }
+
+  if (typeof body === "object") {
+    const payload = body as Record<string, unknown>;
+
+    if (payload.success === false) {
+      return false;
+    }
+
+    if ("data" in payload) {
+      const data = payload.data;
+      if (data === null || data === undefined) return false;
+      if (Array.isArray(data)) return data.length > 0;
+    }
+  }
+
+  return true;
+}
+
 function buildCacheKey(req: Request, options: RouteCacheOptions) {
   const keyParts = [options.keyPrefix, req.method, req.originalUrl];
 
@@ -51,7 +75,7 @@ export function createRouteCache(options: RouteCacheOptions): RequestHandler {
     res.json = ((body: unknown) => {
       const statusCode = res.statusCode >= 200 && res.statusCode < 300 ? res.statusCode : 200;
 
-      if (statusCode >= 200 && statusCode < 300) {
+      if (statusCode >= 200 && statusCode < 300 && shouldCacheResponse(body)) {
         void cacheService.set<CachedResponsePayload>(
           cacheKey,
           {
