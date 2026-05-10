@@ -160,6 +160,40 @@ class CacheService {
       await client.del(namespacedKey);
     }, undefined);
   }
+
+  async delByPrefix(prefix: string): Promise<void> {
+    const namespacedPrefix = this.ns(prefix);
+
+    for (const key of this.memoryCache.keys()) {
+      if (key.startsWith(namespacedPrefix)) {
+        this.memoryCache.delete(key);
+      }
+    }
+
+    const client = await this.client();
+    if (!client) return;
+
+    const pattern = `${namespacedPrefix}*`;
+
+    await this.safe(async () => {
+      if ("scanIterator" in client) {
+          for await (const key of client.scanIterator({ MATCH: pattern, COUNT: 100 })) {
+            const normalizedKey = typeof key === "string" ? key : String(key);
+            await client.del(normalizedKey);
+        }
+        return;
+      }
+
+      let cursor = "0";
+      do {
+        const [nextCursor, keys] = await (client as any).scan(cursor, { MATCH: pattern, COUNT: 100 });
+        if (keys.length > 0) {
+            await (client as any).del(...keys);
+        }
+        cursor = nextCursor;
+      } while (cursor !== "0");
+    }, undefined);
+  }
 }
 
 export const cacheService = new CacheService();

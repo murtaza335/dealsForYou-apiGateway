@@ -83,6 +83,26 @@ export const listPendingBrands = async (req, res, next) => {
         next(error);
     }
 };
+export const listApprovedBrands = async (req, res, next) => {
+    try {
+        await requireRole(req, ["APP_ADMIN"]);
+        const brands = await brandAdminService.listApprovedBrands();
+        res.status(200).json({ success: true, data: brands });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+export const listRejectedBrands = async (req, res, next) => {
+    try {
+        await requireRole(req, ["APP_ADMIN"]);
+        const brands = await brandAdminService.listRejectedBrands();
+        res.status(200).json({ success: true, data: brands });
+    }
+    catch (error) {
+        next(error);
+    }
+};
 export const approveBrand = async (req, res, next) => {
     try {
         await requireRole(req, ["APP_ADMIN"]);

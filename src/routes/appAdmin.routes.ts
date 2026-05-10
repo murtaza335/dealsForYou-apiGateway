@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, RequestHandler } from "express";
 import {
   approveBrand,
   deleteBrandAdmin,
@@ -8,8 +8,10 @@ import {
   getBrandForAdmin,
   listBrandAdmins,
   listAllBrandsForAdmin,
+  listApprovedBrands,
   listEndUsers,
   listPendingBrands,
+  listRejectedBrands,
   rejectBrand,
   suspendBrandAdmin,
 } from "../controllers/brandAdminController.js";
@@ -30,7 +32,7 @@ type CachedResponsePayload = {
 };
 
 const createRouteCache = (options: RouteCacheOptions) => {
-  return async (req: Parameters<typeof router.get>[1] extends (...args: infer Args) => unknown ? Args[0] : never, res: Parameters<typeof router.get>[1] extends (...args: infer Args) => unknown ? Args[1] : never, next: Parameters<typeof router.get>[1] extends (...args: infer Args) => unknown ? Args[2] : never) => {
+  return async (req: any, res: any, next: any): Promise<any> => {
     if (req.method !== "GET") {
       return next();
     }
@@ -121,17 +123,46 @@ const cacheEndUsers = createRouteCache({
   keyPrefix: "admin:end-users",
 });
 
+const invalidateCachePrefixes = async (prefixes: string[]) => {
+  await Promise.all(prefixes.map((prefix) => cacheService.delByPrefix(prefix)));
+};
+
+const withCacheInvalidation = (
+  handler: RequestHandler,
+  prefixes: string[]
+) => {
+  return async (req: any, res: any, next: any): Promise<any> => {
+    res.on("finish", () => {
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        void invalidateCachePrefixes(prefixes);
+      }
+    });
+
+    return handler(req, res, next);
+  };
+};
+
+const adminWriteInvalidations = [
+  "admin:",
+  "brand:brands-info",
+  "brand-admin:",
+  "deals:filter-brands",
+  "deals:",
+];
+
 router.get("/overview", cacheAdminOverview, getAppAdminOverview);
 router.get("/brands", cacheAllBrands, listAllBrandsForAdmin);
 router.get("/brands/pending", cachePendingBrands, listPendingBrands);
+router.get("/brands/approved", cacheAllBrands, listApprovedBrands);
+router.get("/brands/rejected", cacheAllBrands, listRejectedBrands);
 router.get("/brands/:brandId", cacheBrandForAdmin, getBrandForAdmin);
 router.get("/brands/:brandId/deals", cacheBrandDealsForAdmin, getBrandDealsForAdmin);
-router.patch("/brands/:brandId/approve", approveBrand);
-router.patch("/brands/:brandId/reject", rejectBrand);
+router.patch("/brands/:brandId/approve", withCacheInvalidation(approveBrand, adminWriteInvalidations));
+router.patch("/brands/:brandId/reject", withCacheInvalidation(rejectBrand, adminWriteInvalidations));
 router.get("/brand-admins", cacheBrandAdmins, listBrandAdmins);
-router.patch("/brand-admins/:userId/suspend", suspendBrandAdmin);
-router.delete("/brand-admins/:userId", deleteBrandAdmin);
+router.patch("/brand-admins/:userId/suspend", withCacheInvalidation(suspendBrandAdmin, adminWriteInvalidations));
+router.delete("/brand-admins/:userId", withCacheInvalidation(deleteBrandAdmin, adminWriteInvalidations));
 router.get("/end-users", cacheEndUsers, listEndUsers);
-router.delete("/end-users/:userId", deleteEndUser);
+router.delete("/end-users/:userId", withCacheInvalidation(deleteEndUser, ["admin:", "user:profile"]));
 
 export default router;

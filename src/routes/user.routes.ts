@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type RequestHandler } from "express";
 import { getMe, onboardBrandAdmin, onboardConsumer, upsertFromClerk } from "../controllers/userController.js";
 import { cacheService } from "../services/cacheService.js";
 import { getAuthContext } from "../utils/auth.js";
@@ -79,9 +79,35 @@ const cacheUserProfile = createRouteCache({
   includeAuthContext: true,
 });
 
+const invalidateCachePrefixes = async (prefixes: string[]) => {
+  await Promise.all(prefixes.map((prefix) => cacheService.delByPrefix(prefix)));
+};
+
+const withCacheInvalidation = (
+  handler: RequestHandler,
+  prefixes: string[]
+): RequestHandler => {
+  return async (req, res, next) => {
+    res.on("finish", () => {
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        void invalidateCachePrefixes(prefixes);
+      }
+    });
+
+    return handler(req, res, next);
+  };
+};
+
+const userWriteInvalidations = [
+  "user:profile",
+  "admin:",
+  "brand:brands-info",
+  "deals:filter-brands",
+];
+
 router.get("/me", cacheUserProfile, getMe);
-router.post("/upsert-from-clerk", upsertFromClerk);
-router.post("/onboard/consumer", onboardConsumer);
-router.post("/onboard/brand-admin", onboardBrandAdmin);
+router.post("/upsert-from-clerk", withCacheInvalidation(upsertFromClerk, userWriteInvalidations));
+router.post("/onboard/consumer", withCacheInvalidation(onboardConsumer, userWriteInvalidations));
+router.post("/onboard/brand-admin", withCacheInvalidation(onboardBrandAdmin, userWriteInvalidations));
 
 export default router;

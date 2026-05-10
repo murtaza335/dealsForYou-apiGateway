@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, RequestHandler } from "express";
 import {
   getTrendingDeals,
   getTrendingBrands,
@@ -92,14 +92,33 @@ const cacheTrendingBrands = createRouteCache({
   keyPrefix: "analytics:trending-brands",
 });
 
+const invalidateCachePrefixes = async (prefixes: string[]) => {
+  await Promise.all(prefixes.map((prefix) => cacheService.delByPrefix(prefix)));
+};
+
+const withCacheInvalidation = (
+  handler: RequestHandler,
+  prefixes: string[]
+): RequestHandler => {
+  return async (req, res, next) => {
+    res.on("finish", () => {
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        void invalidateCachePrefixes(prefixes);
+      }
+    });
+
+    return handler(req, res, next);
+  };
+};
+
 router.get("/trending/deals", cacheTrendingDeals, getTrendingDeals);
 router.get("/trending/brands", cacheTrendingBrands, getTrendingBrands);
-router.post("/event", trackEvent);
+router.post("/event", withCacheInvalidation(trackEvent, ["analytics:trending-deals", "analytics:trending-brands", "deals:top"]));
 
 // Favourites routes
 router.get("/favourites", requireAuth, getFavourites);
 router.get("/favourites/details", requireAuth, getFavouritesDetails);
-router.post("/favourites", requireAuth, addFavourite);
-router.delete("/favourites", requireAuth, removeFavourite);
+router.post("/favourites", requireAuth, withCacheInvalidation(addFavourite, ["analytics:favourites", "deals:recommended"]));
+router.delete("/favourites", requireAuth, withCacheInvalidation(removeFavourite, ["analytics:favourites", "deals:recommended"]));
 
 export default router;

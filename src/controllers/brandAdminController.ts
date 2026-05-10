@@ -13,6 +13,7 @@ const httpError = (message: string, statusCode: number): HttpError => {
   return error;
 };
 
+
 async function requireRole(req: Parameters<RequestHandler>[0], roles: string[]) {
   const { userId } = getAuthContext(req);
   if (!userId) {
@@ -82,6 +83,26 @@ export const listPendingBrands: RequestHandler = async (req, res, next) => {
   try {
     await requireRole(req, ["APP_ADMIN"]);
     const brands = await brandAdminService.listPendingBrands();
+    res.status(200).json({ success: true, data: brands });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const listApprovedBrands: RequestHandler = async (req, res, next) => {
+  try {
+    await requireRole(req, ["APP_ADMIN"]);
+    const brands = await brandAdminService.listApprovedBrands();
+    res.status(200).json({ success: true, data: brands });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const listRejectedBrands: RequestHandler = async (req, res, next) => {
+  try {
+    await requireRole(req, ["APP_ADMIN"]);
+    const brands = await brandAdminService.listRejectedBrands();
     res.status(200).json({ success: true, data: brands });
   } catch (error) {
     next(error);

@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type RequestHandler } from "express";
 import {
   createMyDeal,
   deleteMyDeal,
@@ -90,9 +90,35 @@ const cacheMyDeals = createRouteCache({
   includeAuthContext: true,
 });
 
+const invalidateCachePrefixes = async (prefixes: string[]) => {
+  await Promise.all(prefixes.map((prefix) => cacheService.delByPrefix(prefix)));
+};
+
+const withCacheInvalidation = (
+  handler: RequestHandler,
+  prefixes: string[]
+): RequestHandler => {
+  return async (req, res, next) => {
+    res.on("finish", () => {
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        void invalidateCachePrefixes(prefixes);
+      }
+    });
+
+    return handler(req, res, next);
+  };
+};
+
+const brandDealWriteInvalidations = [
+  "brand-admin:",
+  "admin:brand-deals",
+  "deals:",
+  "analytics:trending-deals",
+];
+
 router.get("/brand", cacheMyBrand, getMyBrand);
 router.get("/deals", cacheMyDeals, getMyDeals);
-router.post("/deals", createMyDeal);
-router.delete("/deals/:dealId", deleteMyDeal);
+router.post("/deals", withCacheInvalidation(createMyDeal, brandDealWriteInvalidations));
+router.delete("/deals/:dealId", withCacheInvalidation(deleteMyDeal, brandDealWriteInvalidations));
 
 export default router;

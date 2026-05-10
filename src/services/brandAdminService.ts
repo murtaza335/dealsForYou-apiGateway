@@ -47,7 +47,17 @@ class BrandAdminService {
   }
 
   async listPendingBrands() {
-    const payload = await this.fetchFromDeals("/api/brands/pending");
+    const payload = await this.fetchFromDeals("/api/brands/approval/pending");
+    return payload.data ?? [];
+  }
+
+  async listApprovedBrands() {
+    const payload = await this.fetchFromDeals("/api/brands/approval/approved");
+    return payload.data ?? [];
+  }
+
+  async listRejectedBrands() {
+    const payload = await this.fetchFromDeals("/api/brands/approval/rejected");
     return payload.data ?? [];
   }
 

@@ -70,6 +70,7 @@ Redis caching is implemented across all GET routes in the API gateway for read-h
 - **Status Codes**: Only successful responses (2xx status codes) are cached
 - **Empty/Error Payloads**: Successful responses with no results or `success: false` are not cached
 - **Non-GET Routes**: POST, PATCH, DELETE routes bypass cache entirely
+- **Write Invalidation**: Successful POST, PATCH, DELETE routes clear related cache prefixes to prevent stale reads
 - **Graceful Degradation**: If Redis is unavailable, the gateway continues serving requests normally without failing
 
 ## Response Headers
@@ -103,6 +104,23 @@ api-gateway|GET|/api/deals/filtered?search=pizza
 api-gateway|GET|/api/deals/recommended|user:user_123|session:session_456
 api-gateway|GET|/api/users/me|user:user_789|session:session_101
 ```
+
+## Write-Route Invalidation
+
+Write endpoints (POST, PATCH, DELETE) now invalidate related cached GET responses by prefix. This ensures new data is visible immediately after mutations.
+
+### Prefix Invalidation Helpers
+
+- `cacheService.delByPrefix(prefix)` clears all cache entries starting with the given prefix for both Redis and in-memory cache.
+- Prefix values match the route cache `keyPrefix` values (for example `admin:` or `deals:`).
+
+### Invalidation Map (High-Level)
+
+- **Admin writes** (`/api/app-admin/*`): clears `admin:`, `brand:brands-info`, `brand-admin:`, `deals:`, `deals:filter-brands`
+- **Brand admin deal writes** (`/api/brand-admin/deals`): clears `brand-admin:`, `admin:brand-deals`, `deals:`, `analytics:trending-deals`
+- **User onboarding/upsert** (`/api/users/*` POST): clears `user:profile`, `admin:`, `brand:brands-info`, `deals:filter-brands`
+- **Analytics events** (`/api/analytics/event`): clears `analytics:trending-deals`, `analytics:trending-brands`, `deals:top`
+- **Favourites writes** (`/api/analytics/favourites`): clears `analytics:favourites`, `deals:recommended`
 
 ## TTL Rationale
 
@@ -163,7 +181,7 @@ Use the console logs to track hit/miss patterns in development.
 
 ## Future Improvements
 
-1. **Cache Invalidation**: Add logic to clear related caches when data changes (e.g., clear brand caches when deal is updated)
+1. **Cache Invalidation**: Add more granular prefix mapping or entity-specific invalidation to reduce over-invalidation
 2. **Compression**: Compress large responses before storing in Redis
 3. **Metrics Export**: Send cache metrics to monitoring system (Prometheus, Datadog, etc.)
 4. **Granular TTLs**: Make TTLs configurable per route without code changes
